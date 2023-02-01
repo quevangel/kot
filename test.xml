@@ -1,0 +1,1939 @@
+<root>
+	<defcontract id='promise'>
+		<clause id='fulfill'></clause>
+	</defcontract>
+	
+	<section id='about-the-program'>
+		<title> About the program</title>
+		<prose>
+			This program is an implementation of the <ref to='Conectos'/> literate programming language.
+		</prose>
+		<prose>
+			The program is written in the C programming language.
+		</prose>
+		<prose>
+			The program makes use of the following libraries:
+			<todo/>
+			<list>
+				<item></item>
+			</list>
+		</prose>
+	</section>
+
+	<section id='about-conectos'>
+		<title> About Conectos</title>
+		<section id='Conectos'>
+			<prose>
+				Conectos is a literate programming metalanguage.
+				It intends to be a modern replacement for the original literate programming tools/languages WEB and CWEB,
+				developed by Donald Knuth. It's main goal is to be simple but expressive.
+			</prose>
+		</section>
+	</section>
+	
+	<section id='main-source-file-structure'>
+		<title> Main Source file structure</title>
+		<prose> In this section we define the structure of our main C source file.</prose>
+		<deftext id='./main.c' file='out.c' lang='c'>
+			<prose>
+				This is the main, and for the moment the only, C source file for our program.
+				It has the typical structure of any C source file.
+			</prose>
+			<reftext>
+				<insert text='main-includes'/>
+				<insert text='main-type-declarations'/>
+				<insert text='main-type-definitions'/>
+				<insert text='main-global-variable-definitions'/>
+				<insert text='main-function-declarations'/>
+				<insert text='main-function-definitions'/>
+			</reftext>
+		</deftext>
+
+		<deftext id='main-includes' lang='c'>
+			<title> Main includes</title>
+			<reftext>
+				#include <lt/>stdio.h<gt/>
+				#include <lt/>ctype.h<gt/>
+				#include "fstio.h"
+				#include "xarr.h"
+				#include "trie_map.h"
+				#include <lt/>libxml/parser.h<gt/>
+			</reftext>
+		</deftext>
+
+		<deftext id='main-type-declarations' lang='c'>
+			<title> Main type declarations</title>
+			<reftext>
+			</reftext>
+		</deftext>
+
+		<deftext id='main-type-definitions' lang='c'>
+			<title> Main type definitions</title>
+		</deftext>
+
+		<deftext id='main-global-variable-definitions' lang='c'>
+			<title> Main global variable definitions</title>
+		</deftext>
+		<deftext id='main-function-declarations' lang='c'>
+			<title> Main function declarations</title>
+			<reftext>
+				/* begin function declarations */
+			</reftext>
+		</deftext>
+
+		<deftext id='main-function-definitions' lang='c'>
+			<title> Main function definitions</title>
+			<reftext>
+				/* begin function definitions */
+			</reftext>
+		</deftext>
+
+	</section>
+
+	<section id='general-utilities'>
+		<title> General utilities</title>
+		<section id='string'>
+			<title> string struct</title>
+			<prose> In this section we define the string data type using <ref> xarr</ref> and some auxiliary functions
+			related to it.</prose>
+			<deftext id='main-type-declarations' lang='c'>
+				<prose> We declare that the type struct string exists</prose>
+				<reftext>
+					struct string;
+				</reftext>
+			</deftext>
+			<deftext id='main-type-declarations' lang='c'>
+				<prose> We define the type and associated basic functions using <ref> xarr</ref>.</prose>
+				<reftext>
+					DEFINE_XARR(string, char);
+				</reftext>
+			</deftext>
+			<prose> We also create for ourselves some functions transforming between the usual
+			zero terminated strings used in most of the C standard library and our struct.</prose>
+			<prose> In the functions that follow, "sz" stands for string zero, which it's inteded
+			to mean "zero terminated string".</prose>
+
+			<section id='from_sz/function'>
+				<title> from_sz function</title>
+
+				<prose> We begin by creating a function that takes a sz and returns a <ref> string-struct</ref>
+				with the same contents (but obviously not referring to the same memory).</prose>
+				<deftext id='main-function-declarations' lang='c'>
+					<prose> We declare that such a function exists with the obvious signature.</prose>
+					<reftext>
+						struct string from_sz (const char *sz);
+					</reftext>
+				</deftext>
+				<deftext id='main-function-definitions' lang='c'>
+					<prose> The definition of the function is not very surprising, either.</prose>
+					<reftext>
+						struct string
+						from_sz (const char *sz)
+						{
+							struct string string = string_make ();
+							<insert text='from_sz:fill-string'/>
+							return string;
+						}
+					</reftext>
+				</deftext>
+				<deftext id='from_sz:fill-string' lang='c'>
+					<title> Fill the string.</title>
+					<prose> To fill the string we simply iterate over the
+					sz and insert each non-zero character into the string
+					using the string_insert function provided by <ref> xarr</ref>.</prose>
+					<reftext>
+						for (; *sz; sz++)
+						{
+							string_insert (<amp/>string, *sz);
+						}
+					</reftext>
+				</deftext>
+			</section>
+
+			<section id='to_sz/function'>
+				<title> to_sz function</title>
+
+				<prose> Next, we define the reverse function, one that takes a string and
+				returns a sz containing the same characters but not referring to the same memory.</prose>
+				<deftext id='main-function-declarations' lang='c'>
+					<prose> The function signature is as expected.</prose>
+					<reftext>
+						char *to_sz (struct string string);
+					</reftext>
+				</deftext>
+				<deftext id='main-function-definitions' lang='c'>
+					<prose> The function definition is also not very surprising but still
+					somewhat more complicated than it's reverse.</prose>
+					<reftext>
+						char *
+						to_sz (struct string string)
+						{
+							char *sz = malloc (string.len + 1);
+							<insert text='to_sz:copy-to-sz'/>
+							return sz;
+						}
+					</reftext>
+				</deftext>
+
+				<deftext id='to_sz:copy-to-sz' lang='c'>
+					<title> Copy to sz from string.</title>
+					<prose> We simply iterate over the string and assign it's elements to corresponding positions
+					in sz.</prose>
+					<prose> We need a counter to iterate over sz.</prose>
+					<reftext>
+						int i = 0;
+					</reftext>
+					<prose> To iterate we use an standard loop for xarrs not forgetting to also
+					iterate with i.</prose>
+					<reftext>
+						for (char *ch = string.front; ch != string.back; ch++, i++)
+						{
+							sz[i] = *ch;
+						}
+					</reftext>
+					<prose> We must not forget to add the zero at the end of our zero terminated string.</prose>
+					<reftext>
+						sz[string.len] = 0;
+					</reftext>
+				</deftext>
+			</section>
+			<section id='string_append'>
+				<title> string_append function</title>
+
+				<prose> We define a function to append strings.</prose>
+				<deftext id='main-function-declarations' lang='c'>
+					<reftext>
+						void
+						string_append (struct string *to, struct string from);
+					</reftext>
+				</deftext>
+				<deftext id='main-function-definitions' lang='c'>
+					<prose> It's implementation is straightfoward.</prose>
+					<reftext>
+						void
+						string_append (struct string *to, struct string from) {
+							for (char *ch = from.front; ch != from.back; ch++) {
+								string_insert (to, *ch);
+							}
+						}
+					</reftext>
+				</deftext>
+			</section>
+			<section id='compress_ws/function'>
+				<title> compress_ws function</title>
+				<prose> This function receives a string and returns another string that has
+				the same contents as the input string except that non-empty sequences of
+				whitespace characters are replaced by a single space.</prose>
+				<deftext id='main-type-declarations' lang='c'>
+					<reftext>
+						struct string compress_ws (struct string string);
+					</reftext>
+				</deftext>
+				<deftext id='main-type-definitions' lang='c'>
+					<prose> We define the function as follows.</prose>
+					<reftext>
+						struct string
+						compress_ws (struct string string) {
+							struct string result = string_make ();
+							<insert text='compress_ws:fill-result'/>
+							return result;
+						}
+					</reftext>
+					<prose> Where result, will of course contain the string with whitespace compressed.</prose>
+				</deftext>
+				<deftext id='compress_ws:fill-result' lang='c'>
+					<title> Fill result</title>
+					<prose> To fill our result string we will of course need to iterate over our input string.</prose>
+					<prose> As it will be relevant to know whether or not the character that came before us
+					was a whitespace, we create and initialize a boolean variable that tells us just that.</prose>
+					<reftext>
+						bool prev_was_ws = false;
+					</reftext>
+					<reftext>
+						for (char *ch = string.front; ch != string.back; ch++)
+					</reftext>
+					<prose> When the character we are seeing is not whitespace, it is pretty clear that this
+					character needs to just be copied to the result string not forgetting to update
+					our prev_was_ws variable.</prose>
+					<prose> We open the for loop iteration body.</prose>
+					<reftext>
+						{
+					</reftext>
+					<reftext>
+						if (!isspace (*ch))
+						{
+							string_insert (<amp/>result, *ch);
+							prev_was_ws = false; 
+						}
+					</reftext>
+					<prose> Otherwise, we have found a whitespace and we either have to insert an space
+					onto our result string or do nothing.</prose>
+					<prose> This is where the variable prev_was_ws comes into action. If we are a whitespace
+					character and the character that came before us was not, then we are the start of a sequence
+					of whitespace characters. If we are a whitespace and the character before us was also a whitespace
+					character then we are only a continuation of a sequence of whitespace characters.</prose>
+					<prose> If we are at the start of a sequence of whitespace characters, we insert a single
+					space into our result string, otherwise, we do nothing.</prose>
+					<prose> This will have the desired effect of replacing any sequence of whitespace characters by
+					a single space.</prose>
+					<prose> We also don't forget to update the prev_was_ws variable after we have used it's value.</prose>
+					<reftext>
+						else
+						{
+							if (!prev_was_ws)
+							{
+								string_insert (<amp/>result, ' ');
+							}
+							prev_was_ws = true;
+						}
+					</reftext>
+					<prose> We close the for loop iteration body.</prose>
+					<reftext>
+						}
+					</reftext>
+					<prose> And we are done.</prose>
+				</deftext>
+			p</section>
+			<section id='strings/struct'>
+				<title> strings struct</title>
+				<prose> We also define a type to represent a sequence of strings.</prose>
+				<deftext id='main-type-declarations' lang='c'>
+					<reftext>
+						struct strings;
+					</reftext>
+				</deftext>
+				<deftext id='main-type-definitions' lang='c'>
+					<reftext>
+						DEFINE_XARR(strings, struct string);
+					</reftext>
+				</deftext>
+			</section>
+			<section id='string_copy/f'>
+				<title>string_copy Function</title>
+				<prose>
+					This function makes a copy of a string.
+				</prose>
+				<deftext id='main-function-declarations'>
+					<reftext>
+						struct string string_copy(struct string src);
+					</reftext>
+				</deftext>
+				<deftext id='main-function-definitions'>
+					<reftext>
+						struct string string_copy(struct string src) {
+							struct string dst = string_make();
+							for (char *srcc = src.front; srcc != src.back; srcc++)
+								string_insert(<amp/>dst, *srcc);
+							return dst;
+						}
+					</reftext>
+				</deftext>
+			</section>
+			<section id='strings_copy'>
+				<title>strings_copy Function</title>
+				<prose>
+					This function copies a sequence of strings
+					doing a "deep" copy of the characters in each
+					string.
+				</prose>
+				<deftext id='main-function-declarations'>
+					<reftext>
+						struct strings strings_copy(struct strings src);
+					</reftext>
+				</deftext>
+				<deftext id='main-function-definitions'>
+					<reftext>
+						struct strings strings_copy(struct strings src) {
+							struct strings dst = strings_make();
+							for (struct string *srcstr = src.front; srcstr != src.back; srcstr++) {
+								strings_insert(<amp/>dst, string_copy(*srcstr));
+							}
+							return dst;
+						}
+					</reftext>
+				</deftext>
+			</section>
+		</section>
+	</section>
+
+	<section id='xml_tangle/function'>
+		<title> xml_tangle function</title>
+		<prose> This section describes and defines the xml_tangle function that
+		takes a parsed XML document, extracts deftexts and their reftexts and
+		solves their defined text.</prose>
+		<deftext id='main-function-declarations' lang='c'>
+			<prose> We declare such a function. It will simply take an xmlDocPtr
+			and return an integer status code.</prose>
+			<prose> It's result will be in the creation of the specified files
+			in the resolved deftexts that are declared to be written to a file.</prose>
+			<reftext>
+				int
+				xml_tangle (xmlDocPtr xml_document);
+			</reftext>
+		</deftext>
+
+		<deftext id='main-function-definitions' lang='c'>
+			<prose> We define the function, leaving it's body to be expanded on later.</prose>
+			<reftext>
+				int
+				xml_tangle (xmlDocPtr xml_document)
+				{
+				<insert text='xml_tangle:body'/>
+				}
+			</reftext>
+		</deftext>
+		<child id='xml_tangle:body'></child>
+	</section>
+	<deftext id='xml_tangle:body' lang='c'>
+		<title> xml_tangle body</title>
+		<parent id='xml_tangle/function'></parent>
+		<prose>From the xml_document we have, we want to first extract it's deftexts.</prose>
+		<prose>The deftexts are a set of ids that are associated with sequences of literal
+		strings and inserts that together define a text that needs to be resolved.</prose>
+		<prose> To represent these, we will need some supporting data structures.</prose>
+		<child id='xml_tangle:supporting-structures'></child>
+		<prose> Having the supporting structures and related functions defined, we can continue.</prose>
+		<prose> The tangling process will be divided in two main parts: In the first one, we will do a 
+		DFS walk over the XML document searching for deftexts and registering them, in the second one
+		we will resolve each one of the found deftexts, writing them to files when necessary.</prose>
+		<prose> But before doing the two passes, we first declare and initialize some variables 
+		that will be of use to both parts.</prose>
+		<prose> We declare and initialize a variable holding the mapping between ids and 
+		<ref> deftext_data/struct</ref>s that both parts will use to store and manipulate
+		data related to deftexts.</prose>
+		<reftext>
+			struct id_deftext_map *id_deftext_map = id_deftext_map_new ();
+		</reftext>
+		<prose> We do the first pass.</prose> 
+		<reftext>
+			<insert text='xml_tangle:body:register-deftexts'/>
+		</reftext>
+		<prose> We do the second pass.</prose>
+		<reftext>
+			<insert text='xml_tangle:body:resolve-deftexts'/>
+		</reftext>
+	</deftext>
+	<deftext id='xml_tangle:body:register-deftexts' lang='c'>
+		<title> xml_tangle body: Registering deftexts </title>
+		<ctx>
+			inside xml_tangle, having xml_document as an xmlDocPtr and id_deftext_map holding
+			a mapping between ids and deftext data.
+		</ctx>
+		<prose>
+			To find and register the deftext elements inside the given document we do a DFS
+			traversal of the XML document. For this purpose, a recursive routine is used.
+		</prose>
+		<prose> 
+			The recursive routine receives as it's only argument the currently considered
+			XML node.
+		</prose>
+		<prose>
+			Each time an XML node of type "deftext" it's found, special treatment is given,
+			registering it's existence and the contents of it's children of type "reftext" that
+			define it's body.
+		</prose>
+		<prose>
+			With these considerations, most of the routine can already be defined.
+		</prose>
+		<reftext>
+			void
+			dfs_search_deftexts(xmlNodePtr current_node) {
+				if (current_node-<gt/>type == XML_ELEMENT_NODE) {
+					if (!xmlStrcmp(current_node-<gt/>name, (const xmlChar *) "deftext")) {
+						<insert text='xml_tangle:body:register-deftexts:treat-found-deftext'/>
+					}
+					for (xmlNodePtr child = current_node-<gt/>children; 
+						child != NULL; 
+						child = child-<gt/>next) {
+						dfs_search_deftexts (child);
+					}
+				}
+			}
+		</reftext>
+		<prose> 
+			The DFS routine is started on the document's root node.
+		</prose>
+		<reftext>
+			dfs_search_deftexts (xmlDocGetRootElement (xml_document));
+		</reftext>
+	</deftext>
+	<deftext id='xml_tangle:body:register-deftexts:treat-found-deftext' lang='c'>
+		<title> xml_tangle body: Registering deftexts: Treatment of a found deftext</title>
+		<ctx> 
+			inside xml_tangle, having xml_document as an xmlDocPtr and id_deftext_map holding
+			a mapping between ids and deftext data, while on the DFS routine that searches for deftexts
+			having found a particular deftext element.
+		</ctx>
+		<prose> Having found a deftext, the routine first tries to get it's id.</prose>
+		<reftext>
+			const xmlChar *id = xmlGetProp (current_node, "id");
+		</reftext>
+		<prose>
+			When no id is found, nothing is done. So the only actionable case is when an id is found,
+			in which case the deftext registering process can continue.
+		</prose>
+		<reftext>
+			if (id != NULL)
+			{
+				<insert text='xml_tangle:body:register-deftexts:treat-found-deftext:has-id'/>
+			}
+		</reftext>
+	</deftext>
+	<deftext id='xml_tangle:body:register-deftexts:treat-found-deftext:has-id' lang='c'>
+		<title> xml_tangle body: Registering deftexts: Treatment of a found deftext with an id</title>
+		<ctx> 
+			<item> inside xml_tangle, having xml_document as an xmlDocPtr</item>
+			<item> id_deftext_map holding a mapping between ids and deftext data</item> 
+			<item> while on the DFS routine that searches for deftexts</item>
+			<item> having found a particular deftext element</item>
+			<item> when the deftext has an id that has been extracted into the id
+			variable of type const xmlChar *.</item>
+		</ctx>
+		<prose> First, relevant attributes are extracted from the current node.</prose>
+		<prose> As the id has already been extracted, it only remains to extract the file attribute.</prose>
+		<prose> For this, an iteration over the deftexts children is made, searching for this file attribute.</prose>
+		<prose> A xmlChar string is declared, this will hold either NULL or the file attribute content.</prose>
+		<reftext>
+			const xmlChar *file_sz = xmlGetProp(current_node, "file");
+		</reftext>
+		<prose> The extracted file attribute is transformed into a more suitable struct string.</prose>
+		<prose> If there was no such file attribute, it is transformed into an empty string.</prose>
+		<reftext>
+			struct string file_str = file_sz != NULL? from_sz (file_sz) : string_make ();
+		</reftext>
+		<prose> After this, it is ensured that there exists a mapped value from the id to a <ref> deftext_data/struct</ref></prose>
+		<prose> A NULL pointer to such a struct is declared.</prose>
+		<reftext>
+			struct deftext_data *deftext_data = NULL;
+		</reftext>
+		<prose> A mapping from the current deftext's id to a value of this type is ensured, and this variable
+		is filled with a modifyable pointer to the mapped data.</prose>
+		<reftext>
+			<insert text='xml_tangle:body:register-deftexts:treat-found-deftext:has-id:ensure-mapping'/>
+			assert(deftext_data != NULL);
+		</reftext>
+		<prose> Having the deftext_data pointer, a walk over the children of the deftext's is executed, searching for direct
+		"reftext" children that contain incremental portions of the body of the deftext.</prose>
+		<reftext>
+			for (xmlNodePtr child = current_node-<gt/>children; child != NULL; child = child-<gt/>next)
+			if (child-<gt/>type == XML_ELEMENT_NODE <amp/><amp/> !xmlStrcmp(child-<gt/>name, (const xmlChar *) "reftext"))
+			{
+		</reftext>
+		<use id='close-reftext_for'> promise</use>
+		<prose> When a direct reftext child of the deftext is found, yet another walk is executed. Now 
+		searching for the strings and insertions that compose the reftext and that make up the additions 
+		that this reftext declares.</prose>
+		<reftext>
+			for (xmlNodePtr reftext_child = child-<gt/>children; reftext_child != NULL; reftext_child = reftext_child-<gt/>next)
+			{
+		</reftext>
+		<prose> Each one of these reftext's children will be classified in three cases: Those which are text, those which
+		are insertions, and those which are neither.</prose>
+		<prose> Each case will be handled separately.</prose>
+		<reftext>
+			if (reftext_child-<gt/>type == XML_TEXT_NODE)
+			{
+				<insert text='xml_tangle:body:register-deftexts:treat-found-deftext:has-id:handle-text-reftext-child'/>
+			}
+			else if (reftext_child-<gt/>type == XML_ELEMENT_NODE <amp/><amp/> 
+				!xmlStrcmp(reftext_child-<gt/>name, (const xmlChar *) "insert"))
+			{
+				<insert text='xml_tangle:body:register-deftexts:treat-found-deftext:has-id:handle-insert-reftext-child'/>
+			}
+			else
+			{
+				// ignore it.
+			}
+		</reftext>
+		<prose> We close the reftext children iteration.</prose>
+		<reftext> 
+			}
+		</reftext>
+		<prose> We close the deftext children iteration.</prose>
+		<reftext>
+			}
+		</reftext>
+		<comply id='close-reftext_for'> fulfill</comply>
+	</deftext>
+	<deftext id='xml_tangle:body:register-deftexts:treat-found-deftext:has-id:handle-text-reftext-child' lang='c'>
+		<title> xml_tangle body: Registering deftexts: Treatment of a found deftext with an id: Treating text children of reftexts</title>
+		<ctx> 
+			<item> inside xml_tangle, having xml_document as an xmlDocPtr</item>
+			<item> id_deftext_map holding a mapping between ids and deftext data</item> 
+			<item> while on the DFS routine that searches for deftexts</item>
+			<item> having found a particular deftext element</item>
+			<item> when the deftext has an id that has been extracted into the id
+			variable of type const xmlChar *.</item>
+			<item> deftext_data holds a pointer to the data associated with this deftext's id</item>
+			<item> Iterating over the reftext children of the deftext, each child called child</item>
+			<item> Iterating over the children of each reftext, each one called reftext_child</item>
+			<item> When that child is a text node</item>
+		</ctx>
+		<prose> A copy of the text held in the text node is created and stored in a struct string called text.</prose>
+		<warning> Assuming that xmlChar strings are zero terminated.</warning>
+		<reftext>
+			struct string text = from_sz(reftext_child-<gt/>content);
+		</reftext>
+		<prose> The text string is wrapped in a <ref> string_or_insert/struct</ref></prose>
+		<reftext>
+			struct string_or_insert wrapped_text;
+			wrapped_text.is_insert = false;
+			wrapped_text.literal_string = text;
+		</reftext>
+		<prose> The wrapped text is finally inserted into the deftext's body.</prose>
+		<reftext>
+			string_or_insert_sequence_insert (<amp/>deftext_data-<gt/>body, wrapped_text);
+		</reftext>
+	</deftext>
+	<deftext id='xml_tangle:body:register-deftexts:treat-found-deftext:has-id:handle-insert-reftext-child' lang='c'>
+		<title> xml_tangle body: Registering deftexts: Treatment of a found deftext with an id: Treating insert children of reftexts</title>
+		<ctx> 
+			<item> inside xml_tangle, having xml_document as an xmlDocPtr</item>
+			<item> id_deftext_map holding a mapping between ids and deftext data</item> 
+			<item> while on the DFS routine that searches for deftexts</item>
+			<item> having found a particular deftext element</item>
+			<item> when the deftext has an id that has been extracted into the id
+			variable of type const xmlChar *.</item>
+			<item> deftext_data holds a pointer to the data associated with this deftext's id</item>
+			<item> Iterating over the reftext children of the deftext, each child called child</item>
+			<item> Iterating over the children of each reftext, each one called reftext_child</item>
+			<item> When that child is an insert node</item>
+		</ctx>
+		<prose> The "text" XML attribute is extracted from the reftext_child and stored as an
+		const xmlChar * in the text_id variable.</prose>  
+		<reftext>
+			const xmlChar *text_id = xmlGetProp(reftext_child, "text");
+		</reftext>
+		<prose> If there is no such attribute (iff text_id is NULL) then we issue a warning and do nothing.</prose>
+		<reftext>
+			if (text_id == NULL)
+			{
+				fprintf (stderr, "At line %d: Insert without text attribute\n", reftext_child-<gt/>line);
+			}
+		</reftext>
+		<prose> Otherwise.</prose>
+		<reftext>
+			else
+			{
+		</reftext>
+		<prose> A copy of the text_id is made and stored in the struct string text_id_str.</prose>
+		<warning> Assumes that xmlChar strings are zero terminated.</warning>
+		<reftext>
+			struct string text_id_str = from_sz (text_id);
+		</reftext>
+		<prose> This string is wrapped as an insert in a <ref> string_or_insert/struct</ref>.</prose>
+		<reftext>
+			struct string_or_insert wrapped_insert;
+			wrapped_insert.is_insert = true;
+			wrapped_insert.insertion_id = text_id_str;
+		</reftext>
+		<prose> And finally inserted into the deftext's body.</prose>
+		<reftext>
+			string_or_insert_sequence_insert (<amp/>deftext_data-<gt/>body, wrapped_insert);
+		</reftext>
+		<prose> We close the case in which we have the text attribute.</prose>
+		<reftext>
+			}
+		</reftext>
+	</deftext>
+	<deftext id='xml_tangle:body:register-deftexts:treat-found-deftext:has-id:ensure-mapping' lang='c'>
+		<title> xml_tangle body: Registering deftexts: Treatment of a found deftext with an id: Ensuring a mapping</title>
+		<ctx> 
+			<item> inside xml_tangle, having xml_document as an xmlDocPtr</item>
+			<item> id_deftext_map holding a mapping between ids and deftext data</item> 
+			<item> while on the DFS routine that searches for deftexts, current_node holding the current visited node.</item>
+			<item> having found a particular deftext element</item>
+			<item> when the deftext has an id that has been extracted into the id variable which is a xmlChar string.</item>
+			<item> deftext_data is currently a NULL pointer to <ref> deftext_data/struct</ref></item>
+			<item> file_str is a struct string that holds either an empty string or the file attribute of the deftext.</item>
+		</ctx>
+		<prose> In this section, a mapping from the deftext's id to a valid <ref> deftext_data/struct</ref> is ensured.</prose>
+		<prose> The variable holding a pointer to such an struct called "deftext_data" is filled with a pointer
+		to the value holding this deftext's id data.</prose>
+		<use id='set-deftext_data'> promise</use>
+
+		<prose>
+			For this purpose, the id_deftext_map_get function is used.
+		</prose>
+		<prose>
+			As it is required by this function, a function that creates a <ref>deftext_data/struct</ref>
+			with a default value is required.
+		</prose>
+		<prose>
+			This required function is created.
+		</prose>
+		<reftext>
+			struct deftext_data default_value() {
+				struct deftext_data v = deftext_data_make_empty ();
+		</reftext>
+		<prose> 
+			This empty deftext data is filled with the data that can already 
+			be set, such as the id and the file attributes.
+		</prose>
+		<prose> The id is set, first freeing the already stored empty id.</prose>
+		<reftext>
+			assert (v.id.len == 0);
+			assert (v.id.front);
+			free (v.id.front);
+			v.id = from_sz (id);
+		</reftext>
+		<prose> The file is set similarly.</prose>
+		<reftext>
+			assert (v.file.len == 0);
+			assert (v.file.front);
+			free (v.file.front);
+			v.file = file_str;
+		</reftext>
+		<prose> The body is already empty but not NULL as it should be.</prose>
+		<reftext>
+			assert (v.body.front != NULL);
+			assert (v.body.len == 0);
+		</reftext>
+		<prose> The resolution is already empty but not NULL as it should be.</prose>
+		<reftext>
+			assert (v.resolution.front != NULL);
+			assert (v.resolution.len == 0);
+		</reftext>
+		<prose> The resolution_state is already in the not resolved state.</prose>
+		<reftext>
+			assert (v.resolution_state == deftext_unresolved);
+		</reftext>
+		<prose>
+			Finally, v is returned from the function.
+		</prose>
+		<reftext>
+				return v;
+			}
+		</reftext>
+		<prose>
+			Having the default_value function, id_deftext_map_get can be called
+			to either create a mapping for the id with the default value and
+			get a pointer to this value, or get the existing value associated
+			with the deftext's id.
+		</prose>
+		<reftext>
+			deftext_data = id_deftext_map_get(id_deftext_map, id, id + strlen(id), default_value);
+		</reftext>
+	</deftext>
+	<deftext id='xml_tangle:body:resolve-deftexts' lang='c'>
+		<title> xml_tangle body: Resolving deftexts</title>
+
+		<ctx> 
+			<item> inside xml_tangle, having xml_document as an xmlDocPtr</item>
+			<item> id_deftext_map holding a mapping between ids and deftext data</item>
+		</ctx>
+
+		<prose> A function that will take a deftext's id and resolve it's text is defined.</prose>
+		<prose> It will make use of the resolution_state to detect when it has already made the work
+		for a given id and also detect when it has fallen into a loop.</prose>
+		<reftext>
+			struct string
+			resolve_deftext(struct string id)
+			{
+			<insert text='xml_tangle:body:resolve-deftexts:resolve_deftext'/>
+			}
+		</reftext>
+		<prose> To iterate over the registered deftexts another DFS routine is implemented, it walks
+		over the nodes of the id_deftext_map and detects when it has found a node with a value
+		in which case it stops to process that deftext.</prose>
+		<reftext>
+			void
+			walk_over_id_deftext_map(struct id_deftext_map *node)
+			{
+			assert(node != NULL);
+			if (node-<gt/>has_value)
+			{
+			struct deftext_data *node_data = <amp/>node-<gt/>value;
+			<insert text='xml_tangle:body:resolve-deftexts:treat-registered-deftext'/>
+			}
+			for (int i = 0; i <lt/> 256; i++)
+			{
+			if (node-<gt/>transition[i] != NULL)
+			{
+			walk_over_id_deftext_map(node-<gt/>transition[i]);
+			}
+			}
+			}
+		</reftext>
+		<prose> We execute the walk starting from the root node.</prose>
+		<reftext>
+			walk_over_id_deftext_map(id_deftext_map);
+		</reftext>
+	</deftext>
+	<deftext id='xml_tangle:body:resolve-deftexts:treat-registered-deftext' lang='c'>
+
+		<title> xml_tangle body: Resolving deftexts</title>
+
+		<ctx> 
+			<item> inside xml_tangle, having xml_document as an xmlDocPtr</item>
+			<item> id_deftext_map holding a mapping between ids and deftext data</item>
+			<item> on a routine walking over the id_deftext_map searching for
+			registered deftexts, "node" holds the current node.</item>
+			<item> when a mapping node holding a value has been found.</item>
+			<item> node_data holds a pointer to <ref> deftext_data/struct</ref> that
+			is the deftext held in "node".</item>
+		</ctx>
+
+		<prose> Only the case in which the deftext has an associated file is
+		interesting as deftexts that aren't related to a file don't have to
+		be resolved necessarily.</prose>
+
+		<prose> This condition is checked first extracting the file field
+		of the <ref> deftext_data/struct</ref>.</prose>
+		<reftext>
+			struct string file_attribute = node_data-<gt/>file;
+		</reftext>
+
+		<prose> Whether or not this file_attribute is an empty string is
+		checked, it is this case in which there is any interest.</prose>
+		<reftext>
+			if (file_attribute.len <gt/> 0)
+			{
+		</reftext>
+		<prose> The deftext is resolved.</prose>
+		<reftext>
+			struct string resolution = resolve_deftext(node_data-<gt/>id);
+		</reftext>
+		<prose>
+			The deftext's resolution is written into it's corresponding file.
+		</prose>
+		<reftext>
+			char *filename = to_sz (file_attribute);
+			fprintf(stderr, "Writing into %s\n", filename);
+			FILE *output = fopen (filename, "w");
+			fwrite (resolution.front, 1, resolution.len, output);
+			fclose (output);
+			free (filename);
+		</reftext>
+		<prose> The case in which there is a file attribute is closed.</prose>
+		<reftext>
+			}
+		</reftext>
+	</deftext>
+	<deftext id='xml_tangle:body:resolve-deftexts:resolve_deftext' lang='c'>
+		<title> xml_tangle body: Resolving deftexts: inside the DFS routine resolve_deftext</title>
+
+		<ctx> 
+			<item> inside xml_tangle, having xml_document as an xmlDocPtr</item>
+			<item> id_deftext_map holding a mapping between ids and deftext data</item> 
+			<item> inside resolve_deftext, id now holds a struct string that has the id of the deftext that we want to resolve.</item>
+		</ctx>
+
+		<prose> It is first tried to get a pointer to the <ref> deftext_data/struct</ref>
+		associated with the given id.</prose>
+		<prose> If there is no such <ref> deftext_data/struct</ref> it means that there
+		wasn't any deftext with the given id, in this case, a warning is issued
+		and the id is resolved to an empty NULL string.</prose>
+		<reftext>
+			struct deftext_data *data = id_deftext_map_search(id_deftext_map, id.front, id.back);
+			if (data == NULL)
+			{
+				fprintf (stderr, "Warning: Resolved non existent %.*s to an empty string\n", id.len, id.front);
+				return string_null ();
+			}
+			assert (data != NULL);
+		</reftext>
+		<prose> Having the data, the deftext is classified according to the
+		resolution_state.</prose>
+		<reftext>
+			switch (data-<gt/>resolution_state)
+			{
+			case deftext_unresolved:
+			<insert text='xml_tangle:body:resolve-deftexts:resolve_deftext:unresolved'/>
+			break;
+			case deftext_resolving:
+			<insert text='xml_tangle:body:resolve-deftexts:resolve_deftext:resolving'/>
+			break;
+			case deftext_resolved:
+			return data-<gt/>resolution;
+			break;
+			}
+		</reftext>
+		<prose> Each case handler returns an appropiate string value as result.</prose>
+	</deftext>
+	<deftext id='xml_tangle:body:resolve-deftexts:resolve_deftext:resolving' lang='c'>
+		<title> xml_tangle body: Resolving deftexts: inside the DFS routine resolve_deftext: resolving state</title>
+
+		<ctx> 
+			<item> inside xml_tangle, having xml_document as an xmlDocPtr</item>
+			<item> id_deftext_map holding a mapping between ids and deftext data</item> 
+			<item> inside resolve_deftext, id now holds a struct string that has the id of the deftext that we want to resolve.</item>
+			<item> data holds a pointer to the <ref> deftext_data/struct</ref> associated
+			with this id.</item>
+			<item> in the case in which the deftext is in resolving state</item>
+		</ctx>
+		<prose> For the deftext to be in resolving state, it must have been started to
+		being solved by another call to resolve_deftext and then a sequence of
+		inserts returned to the same id, so that there is a cycle that started
+		at this id.</prose>
+		<prose> In this case, a warning is issued, and the state of this deftext
+		is changed to solved, it's resolution set to a null string.</prose>
+		<reftext>
+			data-<gt/>resolution_state = deftext_resolved;
+			assert (data-<gt/>resolution.front);
+			free (data-<gt/>resolution.front);
+			data-<gt/>resolution = string_null ();
+			fprintf (stderr, "Error: Insert cycle started at %.*s\n", id.len, id.front);
+			return data-<gt/>resolution;
+		</reftext>
+	</deftext>
+	<deftext id='xml_tangle:body:resolve-deftexts:resolve_deftext:unresolved' lang='c'>
+		<title> xml_tangle body: Resolving deftexts: in resolve_deftext: unresolved state case</title>
+
+		<ctx> 
+			<item> inside xml_tangle, having xml_document as an xmlDocPtr</item>
+			<item> id_deftext_map holding a mapping between ids and deftext data</item> 
+			<item> inside resolve_deftext, id now holds a struct string that has the
+			id of the deftext that we want to resolve.</item>
+			<item> data holds a pointer to the <ref> deftext_data/struct</ref> associated
+			with this id.</item>
+			<item> in the case in which the deftext is in unresolved state.</item>
+		</ctx>
+
+		<prose> We do the process through which we resolve the text in the current
+		deftext.</prose>
+		<prose> After the process, it must be true that the resolution field contains
+		a string that represents the full resolved text (in case of no cycle errors)
+		and that the resolution_state is now marked as resolved resolved.</prose>
+		<prose> The state of this deftext is updated.</prose>
+		<reftext>
+			data-<gt/>resolution_state = deftext_resolving;
+		</reftext>
+		<use id='set-to-resolved'> promise</use>
+		<use id='set-resolution'> promise</use>
+
+		<prose> The current resolution field must be an empty string that is not NULL.</prose>
+		<reftext>
+			assert (data-<gt/>resolution.len == 0);
+			assert (data-<gt/>resolution.front == data-<gt/>resolution.back);
+			assert (data-<gt/>resolution.front != NULL);
+		</reftext>
+
+		<prose> 
+			An iteration over the body of the deftext is made, and each
+			component's contribution, be it a string or an insert is added
+			to the resolution.
+		</prose>
+
+		<reftext>
+			for (struct string_or_insert *component = data-<gt/>body.front;
+				component != data-<gt/>body.back;
+				component++)
+			{
+				if (component-<gt/>is_insert)
+				{
+					<insert text='xml_tangle:body:resolve-deftexts:resolve_deftext:unresolved:add-insert'/>
+				}
+				else
+				{
+					string_append (<amp/>data-<gt/>resolution, component-<gt/>literal_string);
+				}
+			}
+		</reftext>
+
+		<prose>
+			After this iteration, the resolution field contains each body's
+			component contribution.
+		</prose>
+		<comply id='set-resolution'>fulfill</comply>
+
+		<prose>
+			The resolution_state is set to reflect this situation.
+		</prose>
+		<reftext>
+			data-<gt/>resolution_state = deftext_resolved;
+		</reftext>
+		<prose>
+			The resolution is returned
+		</prose>
+		<reftext>
+			return data-<gt/>resolution;
+		</reftext>
+		<comply id='set-to-resolved'> fulfill</comply>
+	</deftext>
+	<deftext id='xml_tangle:body:resolve-deftexts:resolve_deftext:unresolved:add-insert' lang='c'>
+
+		<title> xml_tangle body: Resolving deftexts: in resolve_deftext: unresolved state case: Adding an insert</title>
+
+		<ctx> 
+			<item> inside xml_tangle, having xml_document as an xmlDocPtr</item>
+			<item> id_deftext_map holding a mapping between ids and deftext data</item> 
+			<item> inside resolve_deftext, id now holds a struct string that has the
+			id of the deftext that we want to resolve.</item>
+			<item> data holds a pointer to the <ref> deftext_data/struct</ref> associated
+			with this id.</item>
+			<item> in the case in which the deftext is in unresolved state</item>
+			<item> building the body</item>
+			<item> iterating over the deftext's body</item>
+			<item> when the current iterated component of the body is an insert</item>
+		</ctx>
+
+		<prose> The id is extracted into a variable.</prose>
+		<reftext>
+			struct string insert_id = component-<gt/>insertion_id;
+		</reftext>
+		<prose> The deftext related to this id is tried to be resolved.</prose>
+		<reftext>
+			struct string insert_resolution = resolve_deftext(insert_id);
+		</reftext>
+		<prose> If the resolution state of this deftext is changed,
+		it means that there was a cycle that started at the current
+		deftext through this insert.</prose>
+		<prose> In this case, the routine that found this cycle should have set
+		the resolution to a null string.</prose>
+		<reftext>
+			if (data-<gt/>resolution_state == deftext_resolved)
+			{
+				assert (data-<gt/>resolution.front == NULL);
+				assert (data-<gt/>resolution.back == NULL);
+				assert (data-<gt/>resolution.len == 0);
+				return data-<gt/>resolution;
+			}
+		</reftext>
+		<prose> Otherwise, the resolution went correctly and the result can
+		be safely appended to the current deftext's resolution.</prose>
+		<reftext>
+			string_append (<amp/>data-<gt/>resolution, insert_resolution);
+		</reftext>
+	</deftext>
+	<section id='xml_tangle:supporting-structures'>
+		<title>xml_tangle: Supporting structures</title>
+		<parent id='xml_tangle:body'></parent>
+		<ctx> We want to define a set of structures that will aid us in representing deftexts
+		and their resolutions.</ctx>
+		<prose> We define a structure representing either a literal string or an insertion.</prose>
+		<child id='string_or_insert/struct'></child>
+		<prose> We define a structure representing an expandable sequence of either literal strings or insertions.</prose>
+		<child id='string_or_insert_sequence/struct'></child>
+		<prose> We define a structure holding all the revelant information associated with a deftext including
+		it's resolution data.</prose>
+		<child id='deftext_data/struct'></child>
+		<prose> We end this section by defining a structure that holds a mapping from ids to <ref> deftext_data/struct</ref></prose>
+		<child id='id_deftext_map/struct'></child>
+	</section>
+	<section id='string_or_insert/struct'>
+		<title>string_or_insert Struct</title>
+		<parent id='xml_tangle:supporting-structures'></parent>
+		<prose> We represent a value that either is a literal string or an insertion
+		by having a field that tells us whether or not
+		it's an insert and an union that can either hold the literal string or the id
+		of the text to be inserted.</prose>
+		<deftext id='main-type-declarations' lang='c'>
+			<prose> We first declare such a struct, called string_or_insert.</prose>
+			<reftext>
+				struct string_or_insert;
+			</reftext>
+		</deftext>
+		<deftext id='main-type-definitions' lang='c'>
+			<prose> We begin the structure's definition.</prose>
+			<reftext>
+				struct string_or_insert
+				{
+			</reftext>
+			<prose> We add the "is_insert" field that tells us whether or
+			not a structure instance represents an insert, and if not, that
+			it represents a literal string.</prose>
+			<reftext>
+				int is_insert;
+			</reftext>
+			<prose> We add an union that will either hold the literal string represented
+			by an instance of this structure or the id of the insertion represented by
+			an instance of this structure.</prose>
+			<reftext>
+				union
+				{
+					struct string literal_string;
+					struct string insertion_id;
+				};
+			</reftext>
+			<prose> We close the structure definition.</prose>
+			<reftext>
+				};
+			</reftext>
+		</deftext>
+	</section>
+	<section id='string_or_insert_sequence/struct'>
+		<title>string_or_insert_sequence Struct</title>
+		<parent id='xml_tangle:supporting-structures'></parent>
+		<prose> Here we define a structure representing an expandable sequence of 
+		<ref> string_or_insert/structure</ref>s.</prose>
+		<deftext id='main-type-declarations' lang='c'>
+			<prose> We declare such a struct.</prose>
+			<reftext>
+				struct string_or_insert_sequence;
+			</reftext>
+		</deftext>
+		<deftext id='main-type-definitions' lang='c'>
+			<prose> We define the struct making use of the DEFINE_XARR macro.</prose>
+			<reftext>
+				DEFINE_XARR(string_or_insert_sequence, struct string_or_insert);
+			</reftext>
+		</deftext>
+	</section>
+	<section id='deftext_resolution_state/enum'>
+		<title> deftext_resolution_state enum</title> 
+		<prose> Here we define an enum that represents a deftext's resolution state.</prose>
+		<prose> Any deftext at any moment can be at three different states, namely:
+		<list>
+			<item> unresolved: The deftext's resolution process hasn't started yet.</item>
+			<item> resolving: The deftext is in the process of being resolved.</item>
+			<item> resolved: The deftext has been solved.</item>
+		</list>
+		</prose>
+		<prose> We represent these three states in the deftext_resolution_state enum
+		respectively calling each state as: deftext_unresolved, deftext_resolving and
+		deftext_resolved.</prose>
+		<deftext id='main-type-declarations' lang='c'>
+			<prose> We first declare the enum.</prose>
+			<reftext>
+				enum deftext_resolution_state;
+			</reftext>
+		</deftext>
+		<deftext id='main-type-definitions'>
+			<prose> We continue by defining the enum.</prose>
+			<reftext>
+				enum deftext_resolution_state
+				{
+					deftext_unresolved,
+					deftext_resolving,
+					deftext_resolved
+				};
+			</reftext>
+		</deftext>
+	</section>
+	<section id='deftext_data/struct'>
+		<title> deftext_data struct</title>
+		<prose> Here we define a struct holding all the relevant data related to a deftext.</prose>
+
+		<prose> In particular, we hold it's id, it's sequence of <ref> string_or_insert</ref> that define
+		it (which we will call it's body), it's resolved string (or the portion that has been resolved),
+		it's resolution state and the name of the file to which this resolution should be written (or an
+		empty string if there is no such file).</prose>
+
+		<prose> For all the previously listed data, we already have types that can represent them, except for 
+		the resolution state, for which we define a supporting data type in a separate child section.</prose>
+
+		<child id='deftext_resolution_state/enum'></child>
+
+		<prose> Given this, we can continue.</prose>
+
+		<deftext id='main-type-declarations' lang='c'>
+			<prose> We begin by declaring the struct.</prose>
+			<reftext>
+				struct deftext_data;
+			</reftext>
+		</deftext>
+		<deftext id='main-type-definitions' lang='c'>
+			<prose> We proceed to define it's fields.</prose>
+			<prose> We begin the struct's definition.</prose>
+
+			<reftext>
+				struct deftext_data
+				{
+			</reftext>
+			<prose> We add a field representing the deftext's id.</prose>
+			<reftext>
+				struct string id;
+			</reftext>
+			<prose> We add a field representing the deftext's body: It's
+			sequence of strings and insertions that define it.</prose>
+			<reftext>
+				struct string_or_insert_sequence body;
+			</reftext>
+			<prose> We add a field representing the deftext's resolved
+			string.</prose>
+			<reftext>
+				struct string resolution;
+			</reftext>
+			<prose> We add a field representing the deftext's resolution state.</prose>
+			<reftext>
+				enum deftext_resolution_state resolution_state;
+			</reftext>
+			<prose> We add a field that either holds the file name associated with
+			this deftext (the file to which this deftext's resolution should be written)
+			or an empty string if there is no such file name.</prose>
+			<reftext>
+				struct string file;
+			</reftext>
+			<prose> We close the struct's definition.</prose>
+			<reftext>
+				};
+			</reftext>
+		</deftext>
+
+		<defcontract id='deftext_data:consider-all-fields'>
+			<prose> To be able to say that one has considered all fields of <ref> deftext_data/struct</ref>
+			in any treatment, one must consider all the following clauses, each corresponding to each
+			field in the struct.</prose>
+			<clause id='consider-id'></clause>
+			<clause id='consider-body'></clause>
+			<clause id='consider-resolution'></clause>
+			<clause id='consider-resolution_state'></clause>
+			<clause id='consider-file'></clause>
+		</defcontract>
+
+		<prose> We also create for ourselves a function that creates an empty
+		deftext data.</prose>
+		<child id='deftext_data_make_empty/function'></child>
+	</section>
+	<section id='deftext_data_make_empty/function'>
+		<title> deftext_data_make_empty function</title>
+		<prose> This function initializes an empty <ref> deftext_data/struct</ref>
+		with sensible values for all fields.</prose>
+		<deftext id='main-function-declarations' lang='c'>
+			<prose> The function is declared as expected.</prose>
+			<reftext>
+				struct deftext_data
+				deftext_data_make_empty ();
+			</reftext>
+		</deftext>
+		<deftext id='main-function-definitions' lang='c'>
+			<prose> As for the definition of the function, it starts like expected.</prose>
+			<reftext>
+				struct deftext_data
+				deftext_data_make_empty ()
+				{
+			</reftext>
+			<prose> The function begins by creating an uninitialized <ref> deftext_data/struct</ref>.</prose>
+			<reftext>
+				struct deftext_data deftext_data;
+			</reftext>
+
+			<prose> Then proceeds to fill all it's fields with empty values.</prose>
+			<use id='deftext_data_make_empty:fill-all-fields'> deftext_data:consider-all-fields</use>
+
+			<prose> Initializes it's id to an empty string.</prose>
+			<reftext>
+				deftext_data.id = string_make ();
+			</reftext>
+			<comply id='deftext_data_make_empty:fill-all-fields'> consider-id</comply>
+
+			<prose> Initializes it's body to an empty sequence.</prose>
+			<reftext>
+				deftext_data.body = string_or_insert_sequence_make ();
+			</reftext>
+			<comply id='deftext_data_make_empty:fill-all-fields'> consider-body</comply>
+
+			<prose> Initializes it's resolution to an empty string.</prose>
+			<reftext>
+				deftext_data.resolution = string_make ();
+			</reftext>
+			<comply id='deftext_data_make_empty:fill-all-fields'> consider-resolution</comply>
+
+			<prose> Sets it's resolution_state to deftext_unresolved.</prose>
+			<reftext>
+				deftext_data.resolution_state = deftext_unresolved;
+			</reftext>
+			<comply id='deftext_data_make_empty:fill-all-fields'> consider-resolution_state</comply>
+
+			<prose> Sets it's associated file name to an empty string.</prose>
+			<reftext>
+				deftext_data.file = string_make ();
+			</reftext>
+			<comply id='deftext_data_make_empty:fill-all-fields'> consider-file</comply>
+
+			<prose> And then returns the just initialized deftext_data.</prose>
+			<reftext>
+				return deftext_data;
+				}
+			</reftext>
+		</deftext>
+	</section>
+	<section id='id_deftext_map/struct'>
+		<title> id_deftext_map struct</title>
+		<prose> The id_deftext_map struct represents a mapping from ids to values of 
+		type <ref> deftext_data/struct</ref>.</prose>
+		<deftext id='main-type-declarations' lang='c'>
+			<prose> We declare the struct.</prose>
+			<reftext>
+				struct id_deftext_map;
+			</reftext>
+		</deftext>
+		<deftext id='main-type-definitions' lang='c'>
+			<prose> We define the struct making use of the DEFINE_STRING_MAP macro.</prose>
+			<reftext>
+				DEFINE_STRING_MAP(id_deftext_map, struct deftext_data);
+			</reftext>
+		</deftext>
+	</section>
+
+	<section id='c-language-preprocessing'>
+		<title> C language Preprocessing</title>
+		<prose>
+			This section describes a procedure that walks over the
+			document and makes transformations only applied to
+			portions of text written in the C programming language.
+		</prose>
+		<prose>
+			In particular, this procedure adds #line directives
+			to each reftext that belongs to a deftext that has
+			declared it's language as "c".
+		</prose>
+		<prose>
+			This is made with the purpose of aiding in compilation and debugging
+			by pointing the compiler and the debugger the actual source of each
+			line of C code.
+		</prose>
+		<prose>
+			This subsystem has a single function as it's interface 
+			simply called c_processor.
+		</prose>
+		<child id='c_processor/f'/>
+	</section>
+	<section id='c_processor/f'>
+		<title>c_processor Function</title>
+		<desc>
+			<prose>
+				The c_processor function takes an XML document and modifies it,
+				adding "line" directives before each reftext hosting C code and
+				after each insert inside reftexts of this kind.
+			</prose>
+		</desc>
+		<args>
+			<arg>
+				<type>xmlDocPtr</type>
+				<name>doc</name>
+				<desc>The in-memory XML document that will be modified.</desc>
+			</arg>
+		</args>
+		<ret>
+			void
+		</ret>
+		<deftext id='main-function-declarations' lang='c'>
+			<reftext>
+				void c_processor(xmlDocPtr doc);
+			</reftext>
+		</deftext>
+		<deftext id='main-function-definitions' lang='c'>
+			<reftext>
+				void c_processor(xmlDocPtr doc)
+				{
+					<in id='c_processor/f'/>
+					<insert text='c_processor:body'/>
+					<popctx/>
+				}
+			</reftext>
+		</deftext>
+	</section>
+	<deftext id='c_processor:body' lang='c'>
+		<title>c_processor Function's body</title>
+		<prose>
+			The function searches for reftexts that have a parent
+			deftext with the lang attribute set to "c" 
+			inside the document and then processes them individually.
+		</prose>
+		<prose>
+			The search is done through a DFS routine walking over
+			the document's nodes.
+		</prose>
+		<reftext>
+			void dfs(xmlNodePtr node) {
+				if (node->type == XML_ELEMENT_NODE <amp/><amp/>
+					!xmlStrcmp(node->name, (const xmlChar*) "reftext") <and/>
+					node->parent <and/>
+					!xmlStrcmp(node->parent->name, (const xmlChar*) "deftext") <and/>
+					xmlGetProp(node->parent, "lang") != NULL <and/>
+					!xmlStrcmp(xmlGetProp(node->parent, "lang"), (const xmlChar *) "c")) {
+					<insert text='c_processor:on-reftext'/>
+				}
+				if (node->type == XML_ELEMENT_NODE)
+					for (xmlNodePtr ch = node->children; ch; ch = ch->next)
+						dfs(ch);
+			}
+			dfs(xmlDocGetRootElement(doc));
+		</reftext>
+	</deftext>
+	<deftext id='c_processor:on-reftext' lang='c'>
+		<title>c_processor on a reftext</title>
+		<prose>
+			A line directive is inserted as text before 
+			every child of the reftext, indicating the file
+			name and line number of the child.
+		</prose>
+		<reftext>
+			for (xmlNodePtr ch = node->children; ch; ch = ch->next) {
+				int ln = ch->line;
+				<prose>
+					For text nodes, the line field holds the line number
+					of the last line of the text, but we need the line 
+					number of the first line of the text instead. So
+					we calculate it by substracting the number of newlines
+					in the text.
+				</prose>
+				if (ch->type == XML_TEXT_NODE) {
+					for (const xmlChar *txtc = ch->content; *txtc; txtc++) {
+						if (*txtc == '\n') ln--;
+					}
+				}
+				<prose>The line directive format string</prose>
+				const char *ldfmt = "\n#line %d \"%s\"\n";
+				<prose>The line directive length</prose>
+				int ldlen = snprintf(NULL, 0, ldfmt, ln, doc->URL);
+				<prose>The line directive</prose>
+				char *ld = malloc(ldlen + 1);
+				snprintf(ld, ldlen + 1, ldfmt, ln, doc->URL);
+				<prose>The line directive text node</prose>
+				xmlNodePtr ldtxtn = xmlNewDocText(doc, (const xmlChar*) ld);
+				xmlAddPrevSibling(ch, ldtxtn);
+			}
+		</reftext>
+	</deftext>
+
+	<section id='special-chars-elements'>
+		<title>Special Character Elements</title>
+		<prose>
+			This section describes a subsystem that transforms special
+			XML element nodes into text nodes that contain a special 
+			character such as <lt/>, <gt/> and <amp/>.
+		</prose>
+		<prose>
+			The subsystem consists of a single function that takes
+			the parsed XML document and transforms it by replacing
+			the special XML elements by text nodes in a sensible manner,
+			keeping the line information intact.
+		</prose>
+		<child id='replace_special_chars/f'/>
+	</section>
+	<section id='replace_special_chars/f'>
+		<title>replace_special_chars Function</title>
+		<prose>
+			This function takes a parsed XML document and transforms it
+			by replacing special XML element nodes by text.
+		</prose>
+		<prose>
+			In particular, it transforms:
+			<list>
+				<item>lt element nodes into a <lt/></item>
+				<item>gt element nodes into a <gt/></item>
+				<item>amp element nodes into a <amp/></item>
+			</list>
+		</prose>
+		<args>
+			<arg>
+				<type>xmlDocPtr</type>
+				<name>doc</name>
+			</arg>
+		</args>
+		<return>
+			void
+		</return>
+		<deftext id='main-function-declarations' lang='c'>
+			<reftext>
+				void replace_special_chars(xmlDocPtr doc);
+			</reftext>
+		</deftext>
+		<deftext id='main-function-definitions' lang='c'>
+			<reftext>
+				void replace_special_chars(xmlDocPtr doc) {
+					<insert text='replace_special_chars:body'/>
+				}
+			</reftext>
+		</deftext>
+	</section>
+	<deftext id='replace_special_chars:body' lang='c'>
+		<title>replace_special_chars body</title>
+		<prose>
+			The function simply walks over the document in a DFS way
+			and each time it finds a special character XML element
+			it replaces it by text, removing the node and inserting
+			the text into the previous text node.
+		</prose>
+		<prose>
+			There is special treatment made when deleting and inserting
+			text into nodes so that line information keeps correct.
+		</prose>
+		<prose>
+			The procedure doesn't handle special character XML elements
+			that don't come after a text node or another special character
+			XML element node
+			<todo>
+				There shouldn't be this restriction in the future.
+			</todo>
+		</prose>
+		<reftext>
+			xmlNodePtr dfs(xmlNodePtr node) {
+				if (node->type == XML_ELEMENT_NODE <and/> 
+					node->prev <and/>
+					node->prev->type == XML_TEXT_NODE) { <ctx>Node is an element with previous text</ctx>
+					if (!xmlStrcmp(node->name, (const xmlChar *) "lt")) { <ctx>Node is lt</ctx>
+						xmlNodeAddContent(node->prev, (const xmlChar *) "<lt/>");
+						goto rm_node;
+					} <popctx/> else if (!xmlStrcmp(node->name, (const xmlChar *) "gt")) {
+						xmlNodeAddContent(node->prev, (const xmlChar *) "<gt/>");
+						goto rm_node;
+					} else if (!xmlStrcmp(node->name, (const xmlChar *) "amp")) {
+						xmlNodeAddContent(node->prev, (const xmlChar *) "<amp/>");
+						goto rm_node;
+					} else if (!xmlStrcmp(node->name, (const xmlChar *) "and")) {
+						xmlNodeAddContent(node->prev, (const xmlChar *) "<and/>");
+						goto rm_node;
+					} else if (!xmlStrcmp(node->name, (const xmlChar *) "or")) {
+						xmlNodeAddContent(node->prev, (const xmlChar *) "||");
+						goto rm_node;
+					}
+					goto children_iteration;
+					rm_node:
+					xmlNodePtr nxt = node->next;
+					if (nxt != NULL <and/> nxt->type == XML_TEXT_NODE) {
+						xmlNodePtr nxtnxt = nxt->next;
+						int ln = nxt->line;
+						xmlNodeAddContent(node->prev, nxt->content);
+						node->prev->line = ln;
+						xmlUnlinkNode(nxt);
+						xmlFreeNode(nxt);
+						nxt = nxtnxt;
+					}
+					xmlUnlinkNode(node);
+					xmlFreeNode(node);
+					return nxt;
+				} <popctx/>
+				children_iteration:
+				for (xmlNodePtr ch = node->children; ch != NULL; ch = dfs(ch));
+				return node->next;
+			}
+			dfs(xmlDocGetRootElement(doc));
+		</reftext>
+	</deftext>
+
+	<section id='contextualizer-subsystem'>
+		<title>Contextualizer Subsystem</title>
+		<prose>
+			This subsystem assigns a context to each deftext.
+		</prose>
+		<section id='contextualizer-subsystem:highlevel'>
+			<title>Contextualizer Subsystem: An overview</title>
+			<prose>
+				A context is defined simply as a sequence of strings
+				each of which tell a part of the context in which 
+				the deftext is in.
+			</prose>
+			<prose>
+				The context is thought to be a stack of these context 
+				strings, where the top of the stack tells about the most
+				recent addition to the context.
+			</prose>
+			<prose>
+				For the purposes of this subsystem, each deftext is thought
+				to have only one insertion place, which is to say an
+				"insertion parent". The context in which this insertion parent
+				is, defines the context for this deftext.
+			</prose>
+			<prose>
+				What then, defines the context of an insertion? Each insertion
+				exists inside a deftext. This deftext gives it it's place inside
+				a text, and as such, gives it a context.
+			</prose>
+			<prose>
+				To define explictly in what context each insertion inside a deftext
+				is, two XML elements are used: cx and ecx (short for "context" and "end 
+				context", respectively). cx's add new contextual information to the top
+				of the context stack while ecx's remove it.
+			</prose>
+			<prose>
+				Then, when an insertion is found after some cx's have taken effect without 
+				being removed, the context stack is adhered to this insertion and give the
+				<emp>immediate</emp> context for the insertion.
+			</prose>
+			<prose>
+				This context is only thought to be the immediate context because this insertion
+				is part of a deftext. But this deftext could also be part of another deftext
+				through it's insertion parent. And so on. So the <emp>full</emp> context
+				could only be retrieved as the concatenation of all of these <emp>immediate</emp>
+				contexts.
+			</prose>
+			<prose>
+				This subsystem only explicitly calculates and stores the <emp>immediate</emp>
+				context and then when a <emp>full</emp> context is requested it is generated
+				through the chain of immediate contexts in which the requested deftext resides.
+			</prose>
+		</section>
+		<section id='contextualizer-subsystem:architecture'>
+			<title>Contextualizer Subsystem: Architecture</title>
+			<prose>
+				The contextualizer subsystem consists of a single
+				function that receives the XML document and a context
+				query and then proceeds to respond to it by writing
+				into the standard output.
+			</prose>
+			<child id='context_query/f'/>
+		</section>
+	</section>
+    
+	<section id='context_query/f'>
+		<title>context_query Function</title>
+		<prose>
+			The context_query function receives an XML document and the id
+			of a deftext to query and than writes into stdout the context
+			in which the deftext resides.
+		</prose>
+		<deftext id='main-function-declarations' lang='c'>
+			<reftext>
+				void context_query(xmlDocPtr doc, char *queryid);
+			</reftext>
+		</deftext>
+		<deftext id='main-function-definitions' lang='c'>
+			<reftext>
+				void context_query(xmlDocPtr doc, char *queryid) {
+					<insert text='context_query:body'/>
+				}
+			</reftext>
+		</deftext>
+	</section>
+	<deftext id='context_query:body' lang='c'>
+		<title>context_query Body</title>
+		<prose>
+			An initial section of the code is reserved
+			for auxiliary routines and variables.
+		</prose>
+		<reftext>
+			<insert text='context_query:aux'/>
+		</reftext>
+		<prose>
+			The function begins by doing a DFS walk
+			over the document registering the immediate
+			context of each insert and the insertion
+			parent of each deftext.
+		</prose>
+		<reftext>
+			<insert text='context_query:register'/>
+		</reftext>
+		<prose>
+			After that, the function goes through the 
+			insertion points of the queried deftext
+			and prints the contextual information
+			from innermost to outermost.
+		</prose>
+		<reftext>
+			<insert text='context_query:answer'/>
+		</reftext>
+	</deftext>
+	<deftext id='context_query:aux' lang='c'>
+		<title>context_query Auxiliary Declarations</title>
+		<prose>
+			The procedure will need to store information
+			related to deftext's (their insertion parent)
+			and to inserts (their context, their containing deftext).
+		</prose>
+		<prose>
+			To identify a deftext, using it's id is enough.
+			But to identify a single insertion is a little bit
+			trickier at first, because there is no identifier
+			associated with an insertion. So what should be used?
+			The answer: Each insertion is an XML node in the
+			parsed document, and each node has a unique direction
+			in memory. This direction can be used as an identifier.
+		</prose>
+		<prose>
+			To store the immediate context of all insertions, then,
+			a mapping from xmlNodePtrs to a <ref>strings/struct</ref>
+			is needed. This is achieved by defining a mapping from
+			strings to <ref>strings/struct</ref> because each pointer
+			to an XML node can be thought of as a string of some bytes.
+		</prose>
+		<prose> 
+			The ictxmap (immediate context map) is defined, both
+			the type and a variable of that type.
+		</prose>
+		<reftext>
+			DEFINE_STRING_MAP(ictxmap, struct strings);
+			struct ictxmap *ictxmap = ictxmap_new();
+		</reftext>
+		<prose>
+			To store the insertion point/insertion parent of each deftext,
+			a similar mapping type is used, mapping from xmlNodePtrs to
+			xmlNodePtrs.
+		</prose>
+		<prose>
+			The inspmap (insertion point/parent map) is defined, both
+			the type and a variable of that type.
+		</prose>
+		<reftext>
+			DEFINE_STRING_MAP(inspmap, xmlNodePtr);
+			struct inspmap *inspmap = inspmap_new();
+		</reftext>
+		<prose>
+			It is also needed to store the current context stack
+			for each deftext, this is handled in an identical way.
+		</prose>
+		<prose>	
+			The cctxsmap (current context stack map) type and variable
+			are defined and initialized.
+		</prose>
+		<reftext>
+			DEFINE_STRING_MAP(cctxsmap, struct strings);
+			struct cctxsmap *cctxsmap = cctxsmap_new();
+		</reftext>
+	</deftext>
+	<deftext id='context_query:register' lang='c'>
+		<title>context_query: Register the XML document.</title>
+		<prose>
+			A DFS routine is executed on the XML document,
+			each time a deftext is encountered, it's immediate
+			children are scanned, searching for either cxs to
+			push to the current context of the deftext, ecxs
+			to pop from the current context of the deftext, or
+			reftexts inside of which there can be more cxs and ecxs
+			or inserts, into which the current deftext context
+			is set as the insert's immediate context.
+		</prose>
+		<reftext>
+			void dfs(xmlNodePtr cn) {
+				if (cn->type == XML_ELEMENT_NODE <and/>
+					!xmlStrcmp(cn->name, (const xmlChar*) "deftext")) {
+					<insert text='context_query:register-deftext'/>
+				}
+				go_over_children:
+				for (xmlNodePtr ch = cn->children; ch != NULL; ch = ch->next) {
+					dfs(ch);
+				}
+			}
+			dfs(xmlDocGetRootElement(doc));
+		</reftext>
+	</deftext>
+	<deftext id='context_query:register-deftext' lang='c'>
+		<title>context_query: Register a Deftext</title>
+		<prose>
+			The id of the deftext is extracted in cdid (current deftext id).
+			And it's length in cdidlen.
+		</prose>
+		<reftext>
+			const xmlChar *cdid = xmlGetProp(cn, "id");
+			int cdidlen = strlen(cdid);
+		</reftext>
+		<prose>
+			If the deftext doesn't have an id, it is skipped.
+		</prose>
+		<reftext>
+			if (cdid == NULL) {
+				goto go_over_children;
+			}
+		</reftext>
+		<prose>
+			A pointer to the current deftext's current context
+			is extracted. If there was no current context registered
+			for this deftext, an empty one is created.
+		</prose>
+		<reftext>
+			struct strings *cdctx = cctxsmap_get(cctxsmap, cdid, cdid + cdidlen, strings_make);
+		</reftext>
+		<prose>
+			Another DFS starting from each of the current deftext's 
+			children is started.
+		</prose>
+		<prose>
+			This DFS stops each time it finds another deftext.
+			It processes cx elements (by pushing it's text body
+			into the context), ecx elements (by poping from the
+			context) and inserts (by setting their context to the
+			current context and setting the insertion parent of
+			the inserted deftext).
+		</prose>
+		<reftext>
+			void cddfs(xmlNodePtr cdch) {
+				if (!xmlStrcmp(cdch->name, (const xmlChar*)"deftext")) {
+					return;
+				} else if (!xmlStrcmp(cdch->name, (const xmlChar*)"insert")) {
+					<insert text='context_query:register insert'/>
+				} else if (!xmlStrcmp(cdch->name, (const xmlChar*)"cx")) {
+					<insert text='context_query:register cx'/>
+				} else if (!xmlStrcmp(cdch->name, (const xmlChar*)"ecx")) {
+					<insert text='context_query:register ecx'/>
+				}
+				for (xmlNodePtr cdchch = cdch->children; cdchch != NULL; cdchch = cdchch->next)
+					cddfs(cdchch);
+			}
+			for (xmlNodePtr cdch = cn->children; cdch; cdch = cdch->next)
+				cddfs(cdch);
+		</reftext>
+	</deftext>
+	<deftext id='context_query:register insert' lang='c'>
+		<title>context_query: Register Insert</title>
+		<prose>
+			Each time an insert is found, a copy of
+			the current deftext's context is set
+			as it's immediate context.
+		</prose>
+		<reftext>
+			ictxmap_set(ictxmap, (char*)<amp/>cdch, (char *)<amp/>cdch + sizeof(xmlNodePtr), strings_copy(*cdctx));
+		</reftext>
+		<prose>
+			If the insert has a referenced "text" attribute, then
+			this insert is set as the insertion parent of the
+			referenced text.
+		</prose>
+		<reftext>
+			const xmlChar *instxt = xmlGetProp(cdch, "text");
+			if (instxt != NULL) {
+				int instxtlen = strlen(instxt);
+				inspmap_set(inspmap, instxt, instxt + instxtlen, cdch);
+			}
+		</reftext>
+	</deftext>
+
+	<deftext id='context_query:register cx' lang='c'>
+		<title>context_query: Register cx</title>
+		<prose>
+			The cx is registered by inserting it's text
+			into the current context of the current deftext.
+		</prose>
+		<prose>
+			The "text" of this cx element is simply the
+			the first child of the cx, which must be a
+			text node.
+		</prose>
+		<prose>
+			If the first child of the cx is not a text node,
+			then nothing is done.
+		</prose>
+		<reftext>
+			xmlNodePtr fch = cdch->children;
+			if (fch != NULL <and/> 
+				fch->type == XML_TEXT_NODE) {
+				struct string txt = from_sz(fch->content);
+				strings_insert(cdctx, txt);
+			}
+		</reftext>
+	</deftext>
+
+	<deftext id='context_query:register ecx' lang='c'>
+		<title>context_query: Register ecx</title>
+		<prose>
+			The ecx is registered by simply poping the
+			last element of the current deftext's context.
+		</prose>
+		<prose>	
+			It needs to be freed first.
+		</prose>
+		<prose>
+			If the context has no elements to pop, then
+			an error is issued.
+		</prose>
+		<reftext>
+			if (cdctx->len) {
+				free(cdctx->back[-1].front);
+				cdctx->back--;
+				cdctx->len--;
+			} else {
+				fprintf(stderr, "At line %d: ecx without context to pop\n", cdch->line);
+			}
+		</reftext>
+	</deftext>
+
+	<deftext id='context_query:answer' lang='c'>
+		<title>context_query: Answer the Query</title>
+		<prose>
+			This section answers the original context
+			query by writing the context into stdout
+			in the form of a list.
+		</prose>
+		<prose>
+			It does this by iteratively going to the
+			insertion parent of the current deftext
+			and printing the immediate context of that insert.
+		</prose>
+		<reftext>
+			for (;;) {
+				int queryidlen = strlen(queryid);
+				<prose>
+					Try to get the insertion parent
+				</prose>
+				xmlNodePtr *inspptr = inspmap_search(inspmap, queryid, queryid + queryidlen);
+				<prose>
+					If there is no insertion parent for the current deftext
+					then the context chain has ended.
+				</prose>
+				if (inspptr == NULL) break;
+				xmlNodePtr insp = *inspptr;
+				<prose>
+					Query the immediate context map for the immediate context
+					of the insertion parent.
+				</prose>
+				struct strings* inspctx = ictxmap_search(ictxmap, (char*)<amp/>insp, (char*)<amp/>insp + sizeof(xmlNodePtr));
+				if (inspctx != NULL) {
+					for (struct string *str = inspctx->back; str != inspctx->front; str--) {
+						struct string s = str[-1];
+						fprintf(stdout, "* %.*s\n", s.len, s.front);
+					}
+				}
+				xmlNodePtr inspp = insp->parent;
+				if (inspp == NULL || xmlStrcmp(inspp->name, (const xmlChar*)"reftext")) {
+					fprintf(stderr, "Bad insert at line %d\n", insp->line);
+					break;
+				}
+				xmlNodePtr inspdeftext = inspp->parent;
+				if (inspdeftext == NULL || xmlStrcmp(inspdeftext->name, (const xmlChar*)"deftext")) {
+					fprintf(stderr, "Bad insert at line %d\n", insp->line);
+					break;
+				}
+				char *inspdeftextid = xmlGetProp(inspdeftext, "id");
+				if (inspdeftextid == NULL) break;
+				queryid = inspdeftextid;
+			}
+		</reftext>
+	</deftext>
+
+	<section id='main/function'>
+		<title> Main function.</title>
+		<prose>
+			The file given as the first invocation argument
+			is opened and parsed as an XML document and then
+			processed as a literate program.
+		</prose>
+		<todo>
+			The current processing pipeline is fixed, ideally
+			it should be customizable through the given command 
+			line arguments.
+		</todo>
+		<deftext id='main-function-definitions' lang='c'>
+			<reftext>
+				int main(int argc, char *argv[]) {
+					if (argc <lt/>= 1) {
+						fprintf(stderr, "Error: No input file.\n");
+						return 1;
+					}
+					char *input_file = argv[1];
+					xmlDocPtr doc = xmlReadFile (input_file, NULL, 0);
+					if (doc == NULL) {
+						fprintf(stderr, "There were errors reading %s\n", input_file);
+						return 1;
+					}
+					replace_special_chars(doc);
+					c_processor(doc);
+					xml_tangle(doc);
+					for (int i = 2; i <lt/> argc; i++) {
+						if (!strcmp(argv[i], "ctx") <and/> i + 1 <lt/> argc) {
+							context_query(doc, argv[i + 1]);
+							i++;
+						}
+					}
+					return 0;
+				}
+			</reftext>
+		</deftext>
+	</section>
+	
+	<deftext id='makefile' file='Makefile' lang='Makefile'>
+		<title>The Makefile</title>
+		<reftext>a.out: test.xml
+	./a.out test.xml;
+	gcc `pkg-config libxml-2.0 --cflags --libs` out.c;</reftext>
+	</deftext> 
+
+	<section id='glossary'>
+		<title> Glossary</title>
+		<section id='weaving'>
+			<title> Weaving</title>
+			<prose> In the context of literate programming it means producing a readable
+			document for human consumption describing the program (or in our case,
+			the totality of files described in the literate program).
+			</prose>
+		</section>
+		<section id='tangling'>
+			<title> Tangling</title>
+			<prose> In the context of literate programming it means producing the source
+			files described in the literate program (in our case, the files are not
+			necessarily thought to be source files, as they can be any kind of text files).
+			</prose>
+		</section>
+	</section>
+</root>
