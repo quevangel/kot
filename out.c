@@ -868,7 +868,7 @@
 						goto rm_node;
 					}
 					goto children_iteration;
-					rm_node:
+					rm_node:;
 					xmlNodePtr nxt = node->next;
 					if (nxt != NULL && nxt->type == XML_TEXT_NODE) {
 						xmlNodePtr nxtnxt = nxt->next;

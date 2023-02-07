@@ -15,13 +15,12 @@ int input_fd = 0;
 char *input_ptr;
 char *output_ptr;
 typedef unsigned int uint;
-__attribute__ ((destructor)) void
+void
 fst_flush ()
 {
   write (output_fd, output_buffer, output_ptr-output_buffer);
   output_ptr = output_buffer;
 }
-#define flush (fst_flush ())
 void
 fst_write_char (char ch)
 {
